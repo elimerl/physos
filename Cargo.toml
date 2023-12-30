@@ -1,0 +1,17 @@
+[package]
+name = "nophysics"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+lto = true
+
+[dependencies]
+flo_canvas = "0.3.1"
+flo_draw = "0.3.1"
+flo_stream = "0.7.0"
+futures = "0.3.30"
+futures-timer = "3.0.2"
+generational-arena = "0.2"
+smallvec = "1.11.2"
+splitmut = "0.2.1"

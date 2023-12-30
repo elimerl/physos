@@ -1,0 +1,3 @@
+without grid: 0.0243s
+with grid: 0.0019s
+with circles: 0.0010s
