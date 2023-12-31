@@ -66,7 +66,7 @@ impl World {
                             .transform
                             .transform_inverse(object.transform.position + axis * overlap))
                         .length();
-                        let obj_vel = object.velocity + object.angular_velocity * obj_r;
+                        let obj_vel = (object.velocity + object.angular_velocity * obj_r).dot(axis);
                         let relative_velocity = obj_vel - other_object.velocity;
                         let v_j = -(1. + object.restitution) * relative_velocity.dot(axis);
                         let total_mass = object.inv_mass() + other_object.inv_mass();
