@@ -90,11 +90,11 @@ pub fn start_rendering(mut world: World) {
                                             .transform(poly.support(Vec2::new(1., 0.)));
                                         gc.line_to(support.x, support.y);
 
-                                        gc.circle(
-                                            object.transform.position.x,
-                                            object.transform.position.y,
-                                            poly.max_radius * 0.5,
-                                        );
+                                        // gc.circle(
+                                        //     object.transform.position.x,
+                                        //     object.transform.position.y,
+                                        //     poly.max_radius * 0.5,
+                                        // );
                                     }
                                 }
                                 let color = {

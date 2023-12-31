@@ -3,6 +3,8 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct Vec2 {
     pub x: f32,
@@ -43,6 +45,50 @@ impl Vec2 {
 
     pub fn normalized(&self) -> Self {
         *self / self.length()
+    }
+}
+
+impl AbsDiffEq for Vec2 {
+    type Epsilon = <f32 as approx::AbsDiffEq>::Epsilon;
+
+    fn default_epsilon() -> <f32 as approx::AbsDiffEq>::Epsilon {
+        f32::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: <f32 as approx::AbsDiffEq>::Epsilon) -> bool {
+        f32::abs_diff_eq(&self.x, &other.x, epsilon) && f32::abs_diff_eq(&self.y, &other.y, epsilon)
+    }
+}
+
+impl RelativeEq for Vec2 {
+    fn default_max_relative() -> <f32 as approx::AbsDiffEq>::Epsilon {
+        f32::default_max_relative()
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: <f32 as approx::AbsDiffEq>::Epsilon,
+        max_relative: <f32 as approx::AbsDiffEq>::Epsilon,
+    ) -> bool {
+        f32::relative_eq(&self.x, &other.x, epsilon, max_relative)
+            && f32::relative_eq(&self.y, &other.y, epsilon, max_relative)
+    }
+}
+
+impl UlpsEq for Vec2 {
+    fn default_max_ulps() -> u32 {
+        f32::default_max_ulps()
+    }
+
+    fn ulps_eq(
+        &self,
+        other: &Self,
+        epsilon: <f32 as approx::AbsDiffEq>::Epsilon,
+        max_ulps: u32,
+    ) -> bool {
+        f32::ulps_eq(&self.x, &other.x, epsilon, max_ulps)
+            && f32::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
     }
 }
 
@@ -111,19 +157,19 @@ impl Div<f32> for Vec2 {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Mat2 {
-    pub m0_col: Vec2,
-    pub m1_col: Vec2,
+    pub m0_row: Vec2,
+    pub m1_row: Vec2,
 }
 
 impl Mat2 {
     pub const IDENTITY: Mat2 = Mat2 {
-        m0_col: Vec2::new(1., 0.),
-        m1_col: Vec2::new(0., 1.),
+        m0_row: Vec2::new(1., 0.),
+        m1_row: Vec2::new(0., 1.),
     };
     pub fn new(m0: Vec2, m1: Vec2) -> Self {
         Self {
-            m0_col: m0,
-            m1_col: m1,
+            m0_row: m0,
+            m1_row: m1,
         }
     }
 
@@ -131,12 +177,24 @@ impl Mat2 {
         Self::from([angle.cos(), -angle.sin(), angle.sin(), angle.cos()])
     }
 
+    pub fn inverse(&self) -> Option<Self> {
+        let det = self.m0_row.x * self.m1_row.y - self.m0_row.y * self.m1_row.x;
+        if det.abs() < 0.0001 {
+            None
+        } else {
+            Some(Mat2::new(
+                Vec2::new(self.m1_row.y / det, -self.m0_row.y / det),
+                Vec2::new(-self.m1_row.x / det, self.m0_row.x / det),
+            ))
+        }
+    }
+
     pub fn to_array(&self) -> [f32; 4] {
-        [self.m0_col.x, self.m0_col.y, self.m1_col.x, self.m1_col.y]
+        [self.m0_row.x, self.m0_row.y, self.m1_row.x, self.m1_row.y]
     }
 
     pub fn det(&self) -> f32 {
-        self.m0_col.x * self.m1_col.y - self.m0_col.y * self.m1_col.x
+        self.m0_row.x * self.m1_row.y - self.m0_row.y * self.m1_row.x
     }
 }
 
@@ -151,8 +209,8 @@ impl Mul<Vec2> for Mat2 {
 
     fn mul(self, rhs: Vec2) -> Self::Output {
         Vec2::new(
-            self.m0_col.x * rhs.x + self.m0_col.y * rhs.y,
-            self.m1_col.x * rhs.x + self.m1_col.y * rhs.y,
+            self.m0_row.x * rhs.x + self.m0_row.y * rhs.y,
+            self.m1_row.x * rhs.x + self.m1_row.y * rhs.y,
         )
     }
 }

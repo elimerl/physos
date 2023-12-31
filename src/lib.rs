@@ -19,16 +19,7 @@ pub struct World {
     pub gravity: Vec2,
     pub substeps: usize,
 
-    changes: Vec<(Index, Vec2, Vec2)>,
-}
-
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
-struct GridPos(i32, i32);
-impl GridPos {
-    fn floor(pos: Vec2) -> GridPos {
-        let pos = pos * (1. / GRID_SIZE);
-        GridPos(pos.x.trunc() as i32, pos.y.trunc() as i32)
-    }
+    changes: Vec<(Index, Vec2, Vec2, f32)>,
 }
 
 impl World {
@@ -71,7 +62,12 @@ impl World {
                         continue;
                     }
                     if let Some((axis, overlap)) = object.overlap(other_object) {
-                        let relative_velocity = object.velocity - other_object.velocity;
+                        let obj_r = (object
+                            .transform
+                            .transform_inverse(object.transform.position + axis * overlap))
+                        .length();
+                        let obj_vel = object.velocity + object.angular_velocity * obj_r;
+                        let relative_velocity = obj_vel - other_object.velocity;
                         let v_j = -(1. + object.restitution) * relative_velocity.dot(axis);
                         let total_mass = object.inv_mass() + other_object.inv_mass();
                         let impulse = v_j / total_mass;
@@ -79,6 +75,7 @@ impl World {
                             idx,
                             -axis * overlap * (object.inv_mass() / total_mass),
                             object.inv_mass() * impulse * axis,
+                            todo!(), // angular velocity change
                         ));
                     }
                 }
@@ -142,7 +139,7 @@ impl PhysicsObject {
             angular_velocity: 0.,
             moment_of_inertia: inertia,
             torque: 0.,
-            restitution: 0.5,
+            restitution: 0.66,
             force: Vec2::ZERO,
             frozen: false,
         }
@@ -177,6 +174,10 @@ impl PhysicsObject {
     }
     pub fn with_shape(mut self, shape: Shape) -> PhysicsObject {
         self.shape = shape;
+        self
+    }
+    pub fn with_restitution(mut self, restitution: f32) -> PhysicsObject {
+        self.restitution = restitution;
         self
     }
 
@@ -445,8 +446,8 @@ impl Polygon {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Transform {
-    position: Vec2,
-    orientation: f32,
+    pub position: Vec2,
+    pub orientation: f32,
 }
 impl Transform {
     fn transform(&self, point: Vec2) -> Vec2 {
@@ -454,6 +455,10 @@ impl Transform {
     }
     fn identity() -> Self {
         Self::default()
+    }
+
+    fn transform_inverse(&self, point: Vec2) -> Vec2 {
+        Mat2::rotation(self.orientation).inverse().unwrap() * (point - self.position)
     }
 }
 
@@ -464,4 +469,24 @@ fn aabb_circle(c: Vec2, h: Vec2, p: Vec2, r: f32) -> bool {
     let u = v - h;
     let u = Vec2::new(u.x.max(0.), u.y.max(0.));
     u.length_squared() < r * r
+}
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_ulps_eq;
+
+    use crate::{math::Vec2, Transform};
+
+    #[test]
+    fn transform() {
+        let transform = Transform {
+            position: Vec2::new(2., 3.),
+            orientation: 90.0f32.to_radians(),
+        };
+        assert_ulps_eq!(transform.transform(Vec2::new(1., 0.)), Vec2::new(2., 4.));
+        assert_ulps_eq!(
+            transform.transform_inverse(Vec2::new(2., 4.)),
+            Vec2::new(1., 0.)
+        );
+    }
 }

@@ -7,6 +7,7 @@ edition = "2021"
 lto = true
 
 [dependencies]
+approx = "0.5.1"
 flo_canvas = "0.3.1"
 flo_draw = "0.3.1"
 flo_stream = "0.7.0"
